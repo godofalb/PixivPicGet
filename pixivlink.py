@@ -5,9 +5,9 @@ import re
 import time
 import os
 class PixivLinker():
-    #秒！
     def __init__(self,filepath="G:\\Hp"):
         print "InitStart"
+        #初始化
         self.filePath=filepath
         self.newPath=filepath+'\\New'
         self.mynewPath=filepath+'\\NewMy'
@@ -22,10 +22,12 @@ class PixivLinker():
         self.authorUrl="https://www.pixiv.net/member_illust.php?id={0}&type=all&p={1}"
         self.size='600x600'
         self.orgsize='150x150'
+        #读取cookie
         self.cookie=cookielib.MozillaCookieJar()
         self.cookie.load("cookies.txt")
         self.handle=urllib2.HTTPCookieProcessor(self.cookie)
         self.opener = urllib2.build_opener(self.handle)
+        #用来获得文件名的正则表达式
         self.namefinder=re.compile('/[a-z,A-Z,_,0-9]*?.jpg')
         self.sizeF=re.compile(self.orgsize)
         self.Header=  { 'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
@@ -38,9 +40,10 @@ class PixivLinker():
                                   ,'Accept':'*/*'
                                      }
         
-        
+    #创建新目录
     def mkDir(self,path):
         path = path.strip()
+        #注意要添加设置文件编码格式
         isExists=os.path.exists(path.decode('utf-8'))
         if not isExists:
             os.makedirs(path.decode('utf-8'))
@@ -48,6 +51,7 @@ class PixivLinker():
         else:
             print "Exists"
             return False
+    #保存图片
     def savePic(self,path,filename,link,name):
         #P站不需要这个
         #time.sleep(1)
@@ -58,13 +62,15 @@ class PixivLinker():
         file=open((path+'\\'+name+'.jpg').decode('utf-8'),"wb")
         file.write(response.read())
         file.close()
-        
+    #保存文本
     def saveTxt(self,path,name,linkname,tag,author,aid,pid):
         file=open((path+'\\'+name+'.txt').decode('utf-8'),'w')
         file.write("作品名:{0}\n文件名:{1}\n作品id:{2}\n作者:{3} \n作者id:{4}\n标签:{5}\n".format(name,linkname,pid,author,aid,tag))
         file.close()
+    #改变要求的图片大小
     def setSize(self,newsize):
          self.size=newsize
+    #保存推荐内容
     def saveRec(self,contents):
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title gtm-recommended-illusts" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
@@ -82,6 +88,7 @@ class PixivLinker():
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
                             s[4])
+    #保存大家更新内容
     def saveNew(self,contents):
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title gtm-everyone-new-illusts" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
@@ -99,6 +106,7 @@ class PixivLinker():
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
                             s[4])
+    #保存订阅更新内容
     def saveMyNew(self,content):
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
       
@@ -116,6 +124,7 @@ class PixivLinker():
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
                             s[4])
+    #保存某作家的内容
     def saveAuthor(self,content,aname):
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         path=self.authorPath+'\\'+aname
@@ -135,6 +144,7 @@ class PixivLinker():
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
                             s[4])
+    #获得主页信息
     def getMain(self,save=False,wantNew=False,wantRec=True):
         try:
             print "GetMain..."
@@ -156,6 +166,7 @@ class PixivLinker():
             print "Over"
         except CookieError,e:
             print e.reason
+    #获得我的更新
     def getMyNew(self,save=False,MaxPage=1): 
         try:
             print "GetMyNew..."
@@ -173,7 +184,7 @@ class PixivLinker():
             print "Over"
         except CookieError,e:
             print e.reason
-        
+    #获得某作者的信息
     def getAuthor(self,aid,save=False,MaxPage=1):
         try:         
             Aname='UnKnown'
