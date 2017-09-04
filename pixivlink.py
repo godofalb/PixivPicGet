@@ -42,7 +42,7 @@ class PixivLinker():
                                   ,'Accept-Encoding': 'gzip, deflate, br'
                                   ,'Referer': 'https://www.pixiv.net/'
                                   ,'DNT': '1'
-				  ,'User-Agent':'godofalb'
+				  ,'User-Agent':''
                                   ,'Connection': 'keep-alive'
                                   ,'Accept':'*/*'
                                      }
@@ -255,7 +255,7 @@ class PixivLinker():
         except CookieError,e:
             print e.reason
 #p=PixivLinker()
-#p.getAuthor('4239212',False, 9)#'8189060'
+#p.getAuthor('',False, 1)
 #p.getMyNew(False, 1)
 #p.getMain(save=True,wantNew=False,wantRec=True)
 
