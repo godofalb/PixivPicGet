@@ -5,7 +5,7 @@ import re
 import time
 import os
 #import ssl 
-#关闭ssl验证
+#关闭ssl验证，如果出现ssl保存尝试打开这个
 #ssl._create_default_https_context = ssl._create_unverified_context
 class PixivLinker():
     def __init__(self,filepath="G:\\Hp"):
