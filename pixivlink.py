@@ -4,6 +4,9 @@ from Cookie import CookieError
 import re
 import time
 import os
+#import ssl 
+#关闭ssl验证
+#ssl._create_default_https_context = ssl._create_unverified_context
 class PixivLinker():
     def __init__(self,filepath="G:\\Hp"):
         print "InitStart"
@@ -39,6 +42,7 @@ class PixivLinker():
                                   ,'Accept-Encoding': 'gzip, deflate, br'
                                   ,'Referer': 'https://www.pixiv.net/'
                                   ,'DNT': '1'
+				  ,'User-Agent':'godofalb'
                                   ,'Connection': 'keep-alive'
                                   ,'Accept':'*/*'
                                      }
@@ -55,22 +59,33 @@ class PixivLinker():
             print "Exists"
             return False
     #保存图片
-    def savePic(self,path,filename,link,name):
+    def savePic(self,path,filename,link,name,date=''):
         #P站不需要这个
         #time.sleep(1)
         reallink=self.sizeF.sub(self.size,link)
         #print reallink
         request=urllib2.Request(reallink,headers=self.Header)
         response = self.opener.open(request)
-        file=open((path+'\\'+time.strftime('%Y-%m-%d',time.localtime(time.time()))+name+'.jpg').decode('utf-8'),"wb")
-        print (path+'\\'+time.strftime('%Y-%m-%d',time.localtime(time.time()))+name+'.jpg').decode('utf-8')
-        file.write(response.read())
-        file.close()
+        try:
+            file=open((path+'\\'+date+name+'.jpg').decode('utf-8'),"wb")
+            print (path+'\\'+date+name+'.jpg').decode('utf-8')
+            file.write(response.read())
+            file.close()
+        except:
+            file=open((path+'\\'+date+filename+'.jpg').decode('utf-8'),"wb")
+            print (path+'\\'+date+name+'.jpg').decode('utf-8')
+            file.write(response.read())
+            file.close()
     #保存文本
-    def saveTxt(self,path,name,linkname,tag,author,aid,pid):
-        file=open((path+'\\'+time.strftime('%Y-%m-%d',time.localtime(time.time()))+name+'.txt').decode('utf-8'),'w')
-        file.write("作品名:{0}\n文件名:{1}\n作品id:{2}\n作者:{3} \n作者id:{4}\n标签:{5}\n".format(name,linkname,pid,author,aid,tag))
-        file.close()
+    def saveTxt(self,path,name,linkname,tag,author,aid,pid,date=''):
+        try:
+            file=open((path+'\\'+date+name+'.txt').decode('utf-8'),'w')
+            file.write("作品名:{0}\n文件名:{1}\n作品id:{2}\n作者:{3} \n作者id:{4}\n标签:{5}\n".format(name,linkname,pid,author,aid,tag))
+            file.close()
+        except:
+            file=open((path+'\\'+date+linkname+'.txt').decode('utf-8'),'w')
+            file.write("作品名:{0}\n文件名:{1}\n作品id:{2}\n作者:{3} \n作者id:{4}\n标签:{5}\n".format(name,linkname,pid,author,aid,tag))
+            file.close()
     #改变要求的图片大小
     def setSize(self,newsize):
         self.size=newsize
@@ -78,41 +93,61 @@ class PixivLinker():
         self.orgsize=newsize
         self.sizeF=re.compile(newsize)
     #保存推荐内容
-    def saveRec(self,contents):
+    def saveRec(self,contents,NewDate=True):
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title gtm-recommended-illusts" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
+        FPath= self.recommonedPath
+        if NewDate:
+            FPath=FPath+'\\'+time.strftime('%Y-%m-%d',time.localtime(time.time()))
+            self.mkDir(FPath)
         for content in contents:
             for s in re.findall(pattern,content):
                 print s[0],s[1],s[2],s[3],s[4],s[5]
-                self.saveTxt(self.recommonedPath,
+                self.saveTxt(
+                              FPath,
                               s[4], 
                               self.namefinder.search(s[0]).group()[1:], 
                               s[2], 
                               s[5], 
                               s[3], 
-                              s[1])
-                self.savePic(self.recommonedPath,
+                              s[1],
+                              time.strftime('%Y-%m-%d',time.localtime(time.time())))
+                self.savePic(
+                    
+                            FPath,
+                            
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
-                            s[4])
+                            s[4],
+                            time.strftime('%Y-%m-%d',time.localtime(time.time())))
     #保存大家更新内容
-    def saveNew(self,contents):
+    def saveNew(self,contents,NewDate=True):
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title gtm-everyone-new-illusts" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
+        FPath=self.newPath
+        if NewDate:
+            FPath=FPath+'\\'+time.strftime('%Y-%m-%d',time.localtime(time.time()))
+            self.mkDir(FPath)
         for content in contents:
             for s in re.findall(pattern,content):
                 print s[0],s[1],s[2],s[3],s[4],s[5]
-                self.saveTxt(self.newPath,
+                self.saveTxt(
+                              FPath,
                               s[4], 
                               self.namefinder.search(s[0]).group()[1:], 
                               s[2], 
                               s[5], 
                               s[3], 
-                              s[1])
-                self.savePic(self.newPath,
+                              s[1],
+                              time.strftime('%Y-%m-%d',time.localtime(time.time())))
+                self.savePic(
+                            
+                             FPath,
+                             
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
-                            s[4])
+                            s[4],
+                            time.strftime('%Y-%m-%d',time.localtime(time.time())))
     #保存订阅更新内容
     def saveMyNew(self,content):
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
@@ -150,7 +185,7 @@ class PixivLinker():
                             s[0], 
                             s[4])
     #获得主页信息
-    def getMain(self,save=False,wantNew=False,wantRec=True):
+    def getMain(self,save=False,wantNew=False,wantRec=True,NewDate=True):
         try:
             print "GetMain..."
             print self.mainUrl
@@ -165,10 +200,10 @@ class PixivLinker():
                 file.close()
             if wantRec:
                 recommonedpattern=re.compile(r'<section class="item recommended-illusts " data-name="recommended_illusts">.*?</section>',re.S)
-                self.saveRec(re.findall(recommonedpattern,content))#recommonedpattern.search(content).group())
+                self.saveRec(re.findall(recommonedpattern,content),NewDate)#recommonedpattern.search(content).group())
             if wantNew: 
                 newpattern=re.compile(r'<section class="item everyone-new-illusts" data-name="everyone_new_illusts">.*?</section>',re.S)
-                self.saveNew(re.findall(newpattern,content))#newpattern.search(content).group())
+                self.saveNew(re.findall(newpattern,content),NewDate)#newpattern.search(content).group())
             print "Over"
         except CookieError,e:
             print e.reason
@@ -219,7 +254,8 @@ class PixivLinker():
             print "Over"
         except CookieError,e:
             print e.reason
-p=PixivLinker()
-#p.getAuthor('159905',False, 8)#'8189060'
+#p=PixivLinker()
+#p.getAuthor('4239212',False, 9)#'8189060'
 #p.getMyNew(False, 1)
-p.getMain(save=True,wantNew=False,wantRec=True)
+#p.getMain(save=True,wantNew=False,wantRec=True)
+
