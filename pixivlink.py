@@ -1,4 +1,5 @@
 ﻿#-*- coding:utf-8 -*-
+from httplib import HTTPException
 import cookielib, urllib2,urllib
 from Cookie import CookieError
 import re
@@ -26,23 +27,25 @@ class PixivLinker():
         self.newUrl="https://www.pixiv.net/bookmark_new_illust.php?p={0}"
         self.authorUrl="https://www.pixiv.net/member_illust.php?id={0}&type=all&p={1}"
         #self.searchUrl="https://www.pixiv.net/search.php?word={0}&order=date_d&p={1}"
-        self.size='600x600'
-        self.orgsize='150x150'
+        self.size=r'600x600'
+        self.orgsize=r'150x150'
+        #self.delete=re.compile(r'_master\d*')
+        self.OrigingalUrl="https://www.pixiv.net/member_illust.php?mode=medium&illust_id={0}"
         #读取cookie
         self.cookie=cookielib.MozillaCookieJar()
-        self.cookie.load("cookies.txt")
         self.handle=urllib2.HTTPCookieProcessor(self.cookie)
         self.opener = urllib2.build_opener(self.handle)
         #用来获得文件名的正则表达式
         self.namefinder=re.compile('/[a-z,A-Z,_,0-9]*?.jpg')
         self.sizeF=re.compile(self.orgsize)
+        self.finder=re.compile(r'<img.*?data-src="(.*?)".*?class="original-image">.*?>')
         self.Header=  { 'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
                                   ,'Host': 'i.pximg.net'
                                   ,'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3'
                                   ,'Accept-Encoding': 'gzip, deflate, br'
                                   ,'Referer': 'https://www.pixiv.net/'
                                   ,'DNT': '1'
-				  ,'User-Agent':'godofalb'
+                                  ,'User-Agent':'godofalb'
                                   ,'Connection': 'keep-alive'
                                   ,'Accept':'*/*'
                                      }
@@ -91,11 +94,26 @@ class PixivLinker():
             print "Exists"
             return False
     #保存图片
-    def savePic(self,path,filename,link,name,date=''):
+    def savePic(self,path,filename,link,name,pid='',date='',saveOrigingal=True):
         #P站不需要这个
         #time.sleep(1)
-        reallink=self.sizeF.sub(self.size,link)
-        #print reallink
+        print 'saving'
+        reallink=''
+        if saveOrigingal and pid:
+            try:
+                print 'finding'
+                tempres=urllib2.Request(self.OrigingalUrl.format(pid))
+                print self.OrigingalUrl.format(pid)
+                time.sleep(1)
+                res = self.opener.open(tempres)
+                reallink=self.finder.search(res.read()).group(1)
+            except Exception,e:
+                print e.message
+        else:
+            reallink=self.sizeF.sub(self.size,link)
+        if not reallink:
+            reallink=self.sizeF.sub(self.size,link)     
+        print reallink
         request=urllib2.Request(reallink,headers=self.Header)
         response = self.opener.open(request)
         try:
@@ -108,7 +126,7 @@ class PixivLinker():
             print (path+'\\'+date+name+'.jpg').decode('utf-8')
             file.write(response.read())
             file.close()
-    #保存文本
+    #保存文本 https://i.pximg.net/img-original/img/2017/09/15/19/41/41/64969252_p0.jpg
     def saveTxt(self,path,name,linkname,tag,author,aid,pid,date=''):
         try:
             file=open((path+'\\'+date+name+'.txt').decode('utf-8'),'w')
@@ -118,17 +136,12 @@ class PixivLinker():
             file=open((path+'\\'+date+linkname+'.txt').decode('utf-8'),'w')
             file.write("作品名:{0}\n文件名:{1}\n作品id:{2}\n作者:{3} \n作者id:{4}\n标签:{5}\n".format(name,linkname,pid,author,aid,tag))
             file.close()
-    #改变要求的图片大小
-    def setSize(self,newsize):
-        self.size=newsize
-    def setSizeO(self,newsize):
-        self.orgsize=newsize
-        self.sizeF=re.compile(newsize)
     #保存推荐内容
     def saveRec(self,contents,NewDate=True):
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title gtm-recommended-illusts" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
         FPath= self.recommonedPath
+        
         if NewDate:
             FPath=FPath+'\\'+time.strftime('%Y-%m-%d',time.localtime(time.time()))
             self.mkDir(FPath)
@@ -145,12 +158,11 @@ class PixivLinker():
                               s[1],
                               time.strftime('%Y-%m-%d',time.localtime(time.time())))
                 self.savePic(
-                    
                             FPath,
-                            
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
                             s[4],
+                            s[1],
                             time.strftime('%Y-%m-%d',time.localtime(time.time())))
     #保存大家更新内容
     def saveNew(self,contents,NewDate=True):
@@ -179,6 +191,7 @@ class PixivLinker():
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
                             s[4],
+                            s[1],
                             time.strftime('%Y-%m-%d',time.localtime(time.time())))
     #保存订阅更新内容
     def saveMyNew(self,content):
@@ -197,7 +210,8 @@ class PixivLinker():
             self.savePic(self.mynewPath,
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
-                            s[4])
+                            s[4],
+                            s[1])
    
     #保存某作家的内容
     def saveAuthor(self,content,path,aname):
@@ -215,7 +229,8 @@ class PixivLinker():
             self.savePic(path,
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
-                            s[4])
+                            s[4],
+                            s[1])
     #获得主页信息
     def getMain(self,save=False,wantNew=False,wantRec=True,NewDate=True):
         try:
@@ -240,7 +255,7 @@ class PixivLinker():
         except CookieError,e:
             print e.reason
         except Exception, e:
-            print e.reason
+            print e.message
     #获得我的更新
     def getMyNew(self,save=False,MaxPage=1): 
         try:
@@ -277,8 +292,10 @@ class PixivLinker():
                     file.write(content)
                     file.close()
                 if i==1:
-                    pattern=re.compile(r'<h1 class="user">(.*?)</h1>',re.S)
-                    Aname=re.findall(pattern,content)[0]
+                    
+                    pattern=re.compile(r'<a.*?class="user-name".*?>(.*?)</a>',re.S)
+                    Aname=pattern.search(content).group(1)
+                    
                     print Aname
                     path=self.authorPath+'\\'+Aname
                     print path
