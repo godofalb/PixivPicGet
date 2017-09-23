@@ -306,8 +306,8 @@ class PixivLinker():
         except CookieError,e:
             print e.reason
 if __name__=='__main__':
-    pass
-p=PixivLinker()
+	pass
+	p=PixivLinker()
 	#p.getAuthor('4239212',False, 9)#'8189060'
 	#p.getMyNew(False, 1)
-p.getMain(save=True,wantNew=False,wantRec=True)
+	p.getMain(save=True,wantNew=False,wantRec=True)
