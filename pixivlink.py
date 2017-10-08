@@ -9,6 +9,9 @@ import os
 #关闭ssl验证
 #ssl._create_default_https_context = ssl._create_unverified_context
 class PixivLinker():
+    '''
+    获得p站推荐作品，作者更新等
+    '''
     def __init__(self,filepath="G:\\Hp"):
         print "InitStart"
         #初始化
@@ -52,8 +55,14 @@ class PixivLinker():
         
         self.username=''
         self.password=''
-    #登入
-    def LoginIn(self):
+    def LoginIn(self,usr='',pwd=''):
+        '''
+                登入p站
+        '''
+        if usr:
+            self.username=usr
+        if pwd:
+            self.password=pwd
         url="https://accounts.pixiv.net/api/login?lang=zh"
         loginUrl="https://accounts.pixiv.net/login"
         Header=  { 'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
@@ -82,8 +91,10 @@ class PixivLinker():
             postdata = urllib.urlencode(datas)
             req=urllib2.Request(url,headers=Header,data=postdata)
             res=self.opener.open(req)
-    #创建新目录
     def mkDir(self,path):
+        '''
+              创建新目录
+        '''
         path = path.strip()
         #注意要添加设置文件编码格式
         isExists=os.path.exists(path.decode('utf-8'))
@@ -93,8 +104,11 @@ class PixivLinker():
         else:
             print "Exists"
             return False
-    #保存图片
+    
     def savePic(self,path,filename,link,name,pid='',date='',saveOrigingal=True):
+        '''
+              保存图片
+        '''
         #P站不需要这个
         #time.sleep(1)
         print 'saving'
@@ -126,8 +140,11 @@ class PixivLinker():
             print (path+'\\'+date+name+'.jpg').decode('utf-8')
             file.write(response.read())
             file.close()
-    #保存文本 https://i.pximg.net/img-original/img/2017/09/15/19/41/41/64969252_p0.jpg
+    
     def saveTxt(self,path,name,linkname,tag,author,aid,pid,date=''):
+        '''
+        保存文本
+        '''
         try:
             file=open((path+'\\'+date+name+'.txt').decode('utf-8'),'w')
             file.write("作品名:{0}\n文件名:{1}\n作品id:{2}\n作者:{3} \n作者id:{4}\n标签:{5}\n".format(name,linkname,pid,author,aid,tag))
@@ -136,8 +153,11 @@ class PixivLinker():
             file=open((path+'\\'+date+linkname+'.txt').decode('utf-8'),'w')
             file.write("作品名:{0}\n文件名:{1}\n作品id:{2}\n作者:{3} \n作者id:{4}\n标签:{5}\n".format(name,linkname,pid,author,aid,tag))
             file.close()
-    #保存推荐内容
+    
     def saveRec(self,contents,NewDate=True):
+        '''
+        保存推荐内容
+        '''
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title gtm-recommended-illusts" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
         FPath= self.recommonedPath
@@ -164,8 +184,11 @@ class PixivLinker():
                             s[4],
                             s[1],
                             time.strftime('%Y-%m-%d',time.localtime(time.time())))
-    #保存大家更新内容
+    
     def saveNew(self,contents,NewDate=True):
+        '''
+        保存大家更新内容
+        '''
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title gtm-everyone-new-illusts" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
         FPath=self.newPath
@@ -193,8 +216,11 @@ class PixivLinker():
                             s[4],
                             s[1],
                             time.strftime('%Y-%m-%d',time.localtime(time.time())))
-    #保存订阅更新内容
+    
     def saveMyNew(self,content):
+        '''
+        保存订阅更新内容
+        '''
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
       
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
@@ -213,8 +239,10 @@ class PixivLinker():
                             s[4],
                             s[1])
    
-    #保存某作家的内容
     def saveAuthor(self,content,path,aname):
+        '''
+        保存某作家的内容
+        '''
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title" title="(.*?)">.*?</li>',re.S)
         for s in re.findall(pattern,content):
@@ -231,8 +259,11 @@ class PixivLinker():
                             s[0], 
                             s[4],
                             s[1])
-    #获得主页信息
+    
     def getMain(self,save=False,wantNew=False,wantRec=True,NewDate=True):
+        '''
+        获得主页信息
+        '''
         try:
             print "GetMain..."
             print self.mainUrl
@@ -256,8 +287,11 @@ class PixivLinker():
             print e.reason
         except Exception, e:
             print e.message
-    #获得我的更新
-    def getMyNew(self,save=False,MaxPage=1): 
+    
+    def getMyNew(self,save=False,MaxPage=1):
+        '''
+        获得我的更新
+        ''' 
         try:
             print "GetMyNew..."
             for i in range(1,MaxPage+1):
@@ -275,8 +309,11 @@ class PixivLinker():
         except CookieError,e:
             print e.reason
 
-    #获得某作者的信息
+    
     def getAuthor(self,aid,save=False,MaxPage=1):
+        '''
+        获得我的更新
+        '''
         try:         
             print 'getAuthor...'
             Aname='UnKnown'
