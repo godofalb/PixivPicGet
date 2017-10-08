@@ -71,7 +71,6 @@ class PixivLinker():
                                   ,'Accept-Encoding': 'gzip, deflate, br'
                                   ,'Referer': 'https://accounts.pixiv.net/login'
                                   ,'DNT': '1'
-                                  
                                   ,'Connection': 'keep-alive'
                                   ,'Accept':'*/*'
                                      }
