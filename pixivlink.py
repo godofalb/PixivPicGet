@@ -48,7 +48,6 @@ class PixivLinker():
                                   ,'Accept-Encoding': 'gzip, deflate, br'
                                   ,'Referer': 'https://www.pixiv.net/'
                                   ,'DNT': '1'
-                                  ,'User-Agent':'godofalb'
                                   ,'Connection': 'keep-alive'
                                   ,'Accept':'*/*'
                                      }
