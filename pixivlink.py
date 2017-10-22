@@ -9,9 +9,6 @@ import os
 #关闭ssl验证
 #ssl._create_default_https_context = ssl._create_unverified_context
 class PixivLinker():
-    '''
-    获得p站推荐作品，作者更新等
-    '''
     def __init__(self,filepath="G:\\Hp"):
         print "InitStart"
         #初始化
@@ -41,27 +38,33 @@ class PixivLinker():
         #用来获得文件名的正则表达式
         self.namefinder=re.compile('/[a-z,A-Z,_,0-9]*?.jpg')
         self.sizeF=re.compile(self.orgsize)
-        self.finder=re.compile(r'<img.*?data-src="(.*?)".*?class="original-image">.*?>')
+        self.findfilename=re.compile(r'/.*?\..*?', re.S)
+        self.findworkplace=re.compile(r'<div class="_layout-thumbnail">(.*?)</div>',  re.S)
+        self.finder=re.compile(r'(https://i.pximg.net/img-original/.*?)"', re.S)
+        #self.finder=re.compile(r'<img.*?data-src="(https://i.pximg.net/img-original/.*?)".*?class="original-image".*?>', re.S)
         self.Header=  { 'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
                                   ,'Host': 'i.pximg.net'
                                   ,'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3'
                                   ,'Accept-Encoding': 'gzip, deflate, br'
                                   ,'Referer': 'https://www.pixiv.net/'
                                   ,'DNT': '1'
+				                  
                                   ,'Connection': 'keep-alive'
                                   ,'Accept':'*/*'
                                      }
-        
+
+        self.domainfinder=re.compile(r'://(.*?)/')
         self.username=''
         self.password=''
-    def LoginIn(self,usr='',pwd=''):
-        '''
-                登入p站
-        '''
-        if usr:
-            self.username=usr
-        if pwd:
-            self.password=pwd
+        self.maxList=50
+    def UrlChange(self,url):
+        domain=re.search(self.domainfinder,url)
+        if domain:
+            domain=domain.group(1)
+            return url.replace(domain,self.pixivDNS[domain])
+        return url
+    #登入
+    def LoginIn(self):
         url="https://accounts.pixiv.net/api/login?lang=zh"
         loginUrl="https://accounts.pixiv.net/login"
         Header=  { 'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
@@ -70,6 +73,7 @@ class PixivLinker():
                                   ,'Accept-Encoding': 'gzip, deflate, br'
                                   ,'Referer': 'https://accounts.pixiv.net/login'
                                   ,'DNT': '1'
+                                  
                                   ,'Connection': 'keep-alive'
                                   ,'Accept':'*/*'
                                      }
@@ -79,7 +83,7 @@ class PixivLinker():
  
         match = pattern.search(content)
         if match: 
-            print match.group(1)
+            
             datas={'pixiv_id':self.username,'password':self.password
                    ,'post_key':match.group(1)
                    ,'ref':'wwwtop_accounts_index'
@@ -89,10 +93,8 @@ class PixivLinker():
             postdata = urllib.urlencode(datas)
             req=urllib2.Request(url,headers=Header,data=postdata)
             res=self.opener.open(req)
+    #创建新目录
     def mkDir(self,path):
-        '''
-              创建新目录
-        '''
         path = path.strip()
         #注意要添加设置文件编码格式
         isExists=os.path.exists(path.decode('utf-8'))
@@ -102,21 +104,34 @@ class PixivLinker():
         else:
             print "Exists"
             return False
-    
-    def savePic(self,path,filename,link,name,pid='',date='',saveOrigingal=True):
-        '''
-              保存图片
-        '''
-        #P站不需要这个
-        #time.sleep(1)
+    def dealpic(self,pid):
         print 'saving'
+        
+        reallink=[]
+        filename=[]
+        try:
+            print 'finding'
+            tempres=urllib2.Request(self.OrigingalUrl.format(pid))
+            print self.OrigingalUrl.format(pid)
+            time.sleep(1)
+            res = self.opener.open(tempres)
+            content=self.finder.search(res.read()).group(1)
+            reallink.append(content)
+            filename.append(self.findfilename.search(content))
+        except Exception,e:
+            print e.message
+        
+         
+    #保存图片
+    def savePic(self,path,filename,link,name,pid='',date=''):
+
         reallink=''
-        if saveOrigingal and pid:
+        if pid:
             try:
                 print 'finding'
                 tempres=urllib2.Request(self.OrigingalUrl.format(pid))
                 print self.OrigingalUrl.format(pid)
-                time.sleep(1)
+                time.sleep(3)
                 res = self.opener.open(tempres)
                 reallink=self.finder.search(res.read()).group(1)
             except Exception,e:
@@ -125,7 +140,7 @@ class PixivLinker():
             reallink=self.sizeF.sub(self.size,link)
         if not reallink:
             reallink=self.sizeF.sub(self.size,link)     
-        print reallink
+        print reallink,name
         request=urllib2.Request(reallink,headers=self.Header)
         response = self.opener.open(request)
         try:
@@ -138,11 +153,8 @@ class PixivLinker():
             print (path+'\\'+date+name+'.jpg').decode('utf-8')
             file.write(response.read())
             file.close()
-    
+    #保存文本 https://i.pximg.net/img-original/img/2017/09/15/19/41/41/64969252_p0.jpg
     def saveTxt(self,path,name,linkname,tag,author,aid,pid,date=''):
-        '''
-        保存文本
-        '''
         try:
             file=open((path+'\\'+date+name+'.txt').decode('utf-8'),'w')
             file.write("作品名:{0}\n文件名:{1}\n作品id:{2}\n作者:{3} \n作者id:{4}\n标签:{5}\n".format(name,linkname,pid,author,aid,tag))
@@ -151,11 +163,8 @@ class PixivLinker():
             file=open((path+'\\'+date+linkname+'.txt').decode('utf-8'),'w')
             file.write("作品名:{0}\n文件名:{1}\n作品id:{2}\n作者:{3} \n作者id:{4}\n标签:{5}\n".format(name,linkname,pid,author,aid,tag))
             file.close()
-    
+    #保存推荐内容
     def saveRec(self,contents,NewDate=True):
-        '''
-        保存推荐内容
-        '''
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title gtm-recommended-illusts" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
         FPath= self.recommonedPath
@@ -173,20 +182,15 @@ class PixivLinker():
                               s[2], 
                               s[5], 
                               s[3], 
-                              s[1],
-                              time.strftime('%Y-%m-%d',time.localtime(time.time())))
+                              s[1])
                 self.savePic(
                             FPath,
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
                             s[4],
-                            s[1],
-                            time.strftime('%Y-%m-%d',time.localtime(time.time())))
-    
+                            s[1])
+    #保存大家更新内容
     def saveNew(self,contents,NewDate=True):
-        '''
-        保存大家更新内容
-        '''
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title gtm-everyone-new-illusts" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
         FPath=self.newPath
@@ -203,8 +207,7 @@ class PixivLinker():
                               s[2], 
                               s[5], 
                               s[3], 
-                              s[1],
-                              time.strftime('%Y-%m-%d',time.localtime(time.time())))
+                              s[1])
                 self.savePic(
                             
                              FPath,
@@ -212,13 +215,9 @@ class PixivLinker():
                             self.namefinder.search(s[0]).group()[1:],
                             s[0], 
                             s[4],
-                            s[1],
-                            time.strftime('%Y-%m-%d',time.localtime(time.time())))
-    
+                            s[1])
+    #保存订阅更新内容
     def saveMyNew(self,content):
-        '''
-        保存订阅更新内容
-        '''
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
       
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title" title="(.*?)">.*?data-user_name="(.*?)".*?</li>',re.S)
@@ -237,10 +236,8 @@ class PixivLinker():
                             s[4],
                             s[1])
    
+    #保存某作家的内容
     def saveAuthor(self,content,path,aname):
-        '''
-        保存某作家的内容
-        '''
         #0-url 1-pid 2-tag 3-aid 4-title 5-username
         pattern=re.compile(r'<li.*?class="image-item".*?data-src="(.*?)".*?data-id="(.*?)".*?data-tags="(.*?)".*?data-user-id="(.*?)".*?<h1 class="title" title="(.*?)">.*?</li>',re.S)
         for s in re.findall(pattern,content):
@@ -257,11 +254,8 @@ class PixivLinker():
                             s[0], 
                             s[4],
                             s[1])
-    
+    #获得主页信息
     def getMain(self,save=False,wantNew=False,wantRec=True,NewDate=True):
-        '''
-        获得主页信息
-        '''
         try:
             print "GetMain..."
             print self.mainUrl
@@ -285,11 +279,102 @@ class PixivLinker():
             print e.reason
         except Exception, e:
             print e.message
-    
-    def getMyNew(self,save=False,MaxPage=1):
-        '''
-        获得我的更新
-        ''' 
+    def saveList(self,ids,path,header,tt):
+        
+        #https://www.pixiv.net/rpc/illust_list.php?illust_ids=65473011%2C65419178%2C65074614%2C65185576%2C65508558%2C65456275%2C65144502%2C65531239%2C65414423%2C65409762%2C65074959%2C65373539%2C65525510%2C65382906%2C65518224%2C65467454%2C65520983%2C65353027%2C65108280%2C65127935%2C65290068%2C65397514%2C65346015%2C65433918%2C65407698%2C65281689%2C65185350%2C65422835%2C65364898%2C65259574%2C65326536%2C65374516%2C65474412%2C65204968%2C65471083%2C65440000%2C65535513%2C65481378%2C65115686%2C65435274%2C65202162%2C65511561%2C65089638%2C65096039%2C65540233%2C65472225%2C65178994%2C65202055%2C65256707%2C65486757&page=discover&exclude_muted_illusts=1&tt=b4424083a29b1aa069dcf38eaf318dbc
+        listurl='https://www.pixiv.net/rpc/illust_list.php?illust_ids='
+        b=True
+        for id in ids:
+            if b:
+                b=False
+                listurl+='{0}'.format(id)
+            else:
+                listurl+='%2C{0}'.format(id)
+        listurl+='&page=discover&exclude_muted_illusts=1&tt=%s'%(tt)
+        req=urllib2.Request(listurl,headers=header)
+        response=self.opener.open(req)
+        content=response.read()
+        
+       # pattern=re.compile(r'"tags":(?P<tags>.*?),"url":(?P<url>.*?),"user_name":(?P<user_name>.*?),"illust_id":(?P<illust_id>.*?),"illust_title":(?P<illust_title>.*?),"illust_user_id":(?P<illust_user_id>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?)', re.S)
+        for match in re.findall(r'{.*?}',content,re.S):
+            
+            time.sleep(1)
+            jsons=eval(match)
+            '''
+            for k in jsons:
+                if type(jsons[k])==types.StringType:
+                    jsons[k]=jsons[k].decode('unicode-escape')
+                if types(jsons[k])==types.ListType:
+            '''        
+         
+            tags=''
+            for tag in jsons['tags']:
+               
+                if tag[0]=='\\' and tag[1]=='u' :
+                    tags+=tag.decode('unicode-escape')+' , '
+                    
+                else:
+                    tags+=tag+' , '
+                    
+            jsons['tags']=tags
+         
+            for k in jsons:
+                if type(jsons[k])==types.StringType:
+                    if jsons[k][0]=='\\' and jsons[k][1]=='u' :
+                        jsons[k]=jsons[k].decode('unicode-escape')
+            #path,name,linkname,tag,author,aid,pid,date=''
+            '''
+            print jsons['illust_title']
+            print self.namefinder.search(jsons['url']).group()[1:]
+            print jsons['tags']
+            print jsons['user_name']
+            print jsons['illust_user_id']
+            print jsons['illust_id']
+            print jsons['url']
+            print jsons['illust_page_count']
+            print re.sub(r'\\/',r'/',jsons['url'])
+            '''
+            self.saveTxt(path,jsons['illust_title'],self.namefinder.search(jsons['url']).group()[1:],jsons['tags'],jsons['user_name'],jsons['illust_user_id'],jsons['illust_id'])
+            #self,path,filename,link,name,pid='',date='' path,filename,link,name,pid='',date=''
+            #savePic(self,path,filename,link,name,pid='',date=''):
+        
+            self.savePic(path, self.namefinder.search(jsons['url']).group()[1:], re.sub(r'\\/','/',jsons['url']),jsons['illust_title'],pid=jsons['illust_id'])
+        pass
+    def getRecommend(self,num=10):
+       
+        req=urllib2.Request('https://www.pixiv.net/discovery')
+        response=self.opener.open(req)
+        content=response.read()
+        tokenfinder=re.compile(r'pixiv.context.token = "(.*?)"', re.S)
+        tokenmatch = re.search(tokenfinder, content)
+        Header=  { 'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
+                                  ,'Host': 'www.pixiv.net'
+                                  ,'Referer': 'https://www.pixiv.net/discovery'
+                                  ,'DNT': '1'
+                                 
+                                  ,'Accept':'*/*'
+                                     }
+        tt=tokenmatch.group(1)
+        datareq=urllib2.Request('https://www.pixiv.net/rpc/recommender.php?type=illust&sample_illusts=auto&num_recommendations={0}&page=discovery&mode=all&tt={1}'.format(num,tt),headers=Header)
+        datasresponse=self.opener.open(datareq)
+        data=datasresponse.read()
+        FPath=self.recommonedPath+'\\'+time.strftime('%Y-%m-%d',time.localtime(time.time()))
+        self.mkDir(FPath)
+        
+        i=0
+        L=[]
+        for match in re.findall(r'\d+',data,re.S):
+            i+=1
+            L.append(match)
+            if i>=self.maxList:
+                print 'sending-------------------'
+                self.saveList(L,FPath,Header,tt)
+                i=0
+                L=[]
+        self.saveList(L,FPath,Header,tt) 
+            
+    #获得我的更新
+    def getMyNew(self,save=False,MaxPage=1): 
         try:
             print "GetMyNew..."
             for i in range(1,MaxPage+1):
@@ -306,12 +391,9 @@ class PixivLinker():
             print "Over"
         except CookieError,e:
             print e.reason
-
     
+    #获得某作者的信息
     def getAuthor(self,aid,save=False,MaxPage=1):
-        '''
-        获得我的更新
-        '''
         try:         
             print 'getAuthor...'
             Aname='UnKnown'
