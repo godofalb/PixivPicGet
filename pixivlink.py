@@ -8,6 +8,11 @@ import os
 #import ssl 
 #关闭ssl验证
 #ssl._create_default_https_context = ssl._create_unverified_context
+false=False
+true=True
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 class PixivLinker():
     def __init__(self,filepath="G:\\Hp"):
         print "InitStart"
