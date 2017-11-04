@@ -4,6 +4,7 @@ import cookielib, urllib2,urllib
 from Cookie import CookieError
 import re
 import time
+import types
 import os
 #import ssl 
 #关闭ssl验证
@@ -139,24 +140,33 @@ class PixivLinker():
                 time.sleep(3)
                 res = self.opener.open(tempres)
                 reallink=self.finder.search(res.read()).group(1)
+                name+="."+reallink[-3:]
             except Exception,e:
                 print e.message
         else:
             reallink=self.sizeF.sub(self.size,link)
+            name+='.jpg'
         if not reallink:
-            reallink=self.sizeF.sub(self.size,link)     
+            reallink=self.sizeF.sub(self.size,link)   
+            name+='.jpg'  
         print reallink,name
         request=urllib2.Request(reallink,headers=self.Header)
         response = self.opener.open(request)
+       
         try:
-            file=open((path+'\\'+date+name+'.jpg').decode('utf-8'),"wb")
-            print (path+'\\'+date+name+'.jpg').decode('utf-8')
-            file.write(response.read())
+            print path+'\\'+date+name
+            file=open((path+'\\'+date+name),"wb")
+            
+           # for byte in response.read():
+            file.write( response.read())
             file.close()
-        except:
-            file=open((path+'\\'+date+filename+'.jpg').decode('utf-8'),"wb")
-            print (path+'\\'+date+name+'.jpg').decode('utf-8')
-            file.write(response.read())
+        except Exception,e:
+            print e.message
+            print path+'\\'+date+filename+'.jpg'
+            file=open((path+'\\'+date+filename+'.jpg'),"wb")
+           
+           # for byte in response.read():
+            file.write( response.read())
             file.close()
     #保存文本 https://i.pximg.net/img-original/img/2017/09/15/19/41/41/64969252_p0.jpg
     def saveTxt(self,path,name,linkname,tag,author,aid,pid,date=''):
