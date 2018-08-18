@@ -1,5 +1,6 @@
 ﻿#-*- coding:utf-8 -*-
 from httplib import HTTPException
+from urllib2 import HTTPError
 import cookielib, urllib2,urllib
 from Cookie import CookieError
 import re
@@ -130,8 +131,9 @@ class PixivLinker():
          
     #保存图片
     def savePic(self,path,filename,link,name,pid='',date=''):
-
-        reallink=''
+        
+        #reallink=link.replace('24-x24-')
+        '''
         if pid:
             try:
                 print 'finding'
@@ -149,10 +151,20 @@ class PixivLinker():
         if not reallink:
             reallink=self.sizeF.sub(self.size,link)   
             name+='.jpg'  
+        '''
+        reallink=link.replace('c/240x240/img-master','img-original').replace('_master1200','')
         print reallink,name
-        request=urllib2.Request(reallink,headers=self.Header)
-        response = self.opener.open(request)
-       
+        try:
+            name=name+'.jpg'
+            request=urllib2.Request(reallink,headers=self.Header)
+            response = self.opener.open(request)
+        except HTTPError,e:
+            reallink=reallink.replace('jpg','png')
+            name=name.replace('jpg','png')
+            print('Try PNG')
+            request=urllib2.Request(reallink,headers=self.Header)
+            response = self.opener.open(request)
+        print reallink,name
         try:
             print path+'\\'+date+name
             file=open((path+'\\'+date+name),"wb")
