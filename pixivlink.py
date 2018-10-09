@@ -172,6 +172,7 @@ class PixivLinker():
            # for byte in response.read():
             file.write( response.read())
             file.close()
+            return path+'\\'+date+name
         except Exception,e:
             print e.message
             print path+'\\'+date+filename+'.jpg'
@@ -180,6 +181,7 @@ class PixivLinker():
            # for byte in response.read():
             file.write( response.read())
             file.close()
+            return path+'\\'+date+filename+'.jpg'
     #保存文本 https://i.pximg.net/img-original/img/2017/09/15/19/41/41/64969252_p0.jpg
     def saveTxt(self,path,name,linkname,tag,author,aid,pid,date=''):
         try:
@@ -324,49 +326,50 @@ class PixivLinker():
         
        # pattern=re.compile(r'"tags":(?P<tags>.*?),"url":(?P<url>.*?),"user_name":(?P<user_name>.*?),"illust_id":(?P<illust_id>.*?),"illust_title":(?P<illust_title>.*?),"illust_user_id":(?P<illust_user_id>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?),"user_name":(?P<user_name>.*?)', re.S)
         for match in re.findall(r'{.*?}',content,re.S):
-            
-            time.sleep(1)
-            jsons=eval(match)
-            '''
-            for k in jsons:
-                if type(jsons[k])==types.StringType:
-                    jsons[k]=jsons[k].decode('unicode-escape')
-                if types(jsons[k])==types.ListType:
-            '''        
-         
-            tags=''
-            for tag in jsons['tags']:
-               
-                if tag[0]=='\\' and tag[1]=='u' :
-                    tags+=tag.decode('unicode-escape')+' , '
-                    
-                else:
-                    tags+=tag+' , '
-                    
-            jsons['tags']=tags
-         
-            for k in jsons:
-                if type(jsons[k])==types.StringType:
-                    if jsons[k][0]=='\\' and jsons[k][1]=='u' :
+            try:
+                time.sleep(1)
+                jsons=eval(match)
+                '''
+                for k in jsons:
+                    if type(jsons[k])==types.StringType:
                         jsons[k]=jsons[k].decode('unicode-escape')
-            #path,name,linkname,tag,author,aid,pid,date=''
-            '''
-            print jsons['illust_title']
-            print self.namefinder.search(jsons['url']).group()[1:]
-            print jsons['tags']
-            print jsons['user_name']
-            print jsons['illust_user_id']
-            print jsons['illust_id']
-            print jsons['url']
-            print jsons['illust_page_count']
-            print re.sub(r'\\/',r'/',jsons['url'])
-            '''
-            self.saveTxt(path,jsons['illust_title'],self.namefinder.search(jsons['url']).group()[1:],jsons['tags'],jsons['user_name'],jsons['illust_user_id'],jsons['illust_id'])
-            #self,path,filename,link,name,pid='',date='' path,filename,link,name,pid='',date=''
-            #savePic(self,path,filename,link,name,pid='',date=''):
-        
-            self.savePic(path, self.namefinder.search(jsons['url']).group()[1:], re.sub(r'\\/','/',jsons['url']),jsons['illust_title'],pid=jsons['illust_id'])
-        pass
+                    if types(jsons[k])==types.ListType:
+                '''        
+             
+                tags=''
+                for tag in jsons['tags']:
+                   
+                    if tag[0]=='\\' and tag[1]=='u' :
+                        tags+=tag.decode('unicode-escape')+' , '
+                        
+                    else:
+                        tags+=tag+' , '
+                        
+                jsons['tags']=tags
+             
+                for k in jsons:
+                    if type(jsons[k])==types.StringType:
+                        if jsons[k][0]=='\\' and jsons[k][1]=='u' :
+                            jsons[k]=jsons[k].decode('unicode-escape')
+                #path,name,linkname,tag,author,aid,pid,date=''
+                '''
+                print jsons['illust_title']
+                print self.namefinder.search(jsons['url']).group()[1:]
+                print jsons['tags']
+                print jsons['user_name']
+                print jsons['illust_user_id']
+                print jsons['illust_id']
+                print jsons['url']
+                print jsons['illust_page_count']
+                print re.sub(r'\\/',r'/',jsons['url'])
+                '''
+                self.saveTxt(path,jsons['illust_title'],self.namefinder.search(jsons['url']).group()[1:],jsons['tags'],jsons['user_name'],jsons['illust_user_id'],jsons['illust_id'])
+                #self,path,filename,link,name,pid='',date='' path,filename,link,name,pid='',date=''
+                #savePic(self,path,filename,link,name,pid='',date=''):
+            
+                self.savePic(path, self.namefinder.search(jsons['url']).group()[1:], re.sub(r'\\/','/',jsons['url']),jsons['illust_title'],pid=jsons['illust_id'])
+            except Exception,e:
+                print e
     def getRecommend(self,num=10):
        
         req=urllib2.Request('https://www.pixiv.net/discovery')
